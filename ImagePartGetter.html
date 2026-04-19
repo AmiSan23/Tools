@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Part Getter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 0.95rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title svg {
+            width: 20px;
+            height: 20px;
+            color: #00d4ff;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed rgba(0, 212, 255, 0.3);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px;
+            color: #00d4ff;
+        }
+
+        .upload-text {
+            font-size: 1rem;
+            color: #ccc;
+            margin-bottom: 4px;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Image Area */
+        .image-container {
+            position: relative;
+            display: none;
+            background: #0a0a0a;
+            border-radius: 12px;
+            overflow: hidden;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-container.has-image {
+            display: flex;
+        }
+
+        .image-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        #uploadedImage {
+            max-width: 100%;
+            max-height: 600px;
+            display: block;
+        }
+
+        .grid-selection {
+            position: absolute;
+            border: 3px solid #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+            cursor: move;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3),
+                        inset 0 0 20px rgba(0, 212, 255, 0.1);
+        }
+
+        .grid-selection::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 10px,
+                rgba(0, 212, 255, 0.1) 10px,
+                rgba(0, 212, 255, 0.1) 11px
+            ),
+            repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                rgba(0, 212, 255, 0.1) 10px,
+                rgba(0, 212, 255, 0.1) 11px
+            );
+        }
+
+        .grid-selection .resize-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #00d4ff;
+            border: 2px solid #fff;
+            border-radius: 2px;
+        }
+
+        .grid-selection .resize-handle.nw { top: -6px; left: -6px; cursor: nw-resize; }
+        .grid-selection .resize-handle.ne { top: -6px; right: -6px; cursor: ne-resize; }
+        .grid-selection .resize-handle.sw { bottom: -6px; left: -6px; cursor: sw-resize; }
+        .grid-selection .resize-handle.se { bottom: -6px; right: -6px; cursor: se-resize; }
+        .grid-selection .resize-handle.n { top: -6px; left: 50%; transform: translateX(-50%); cursor: n-resize; }
+        .grid-selection .resize-handle.s { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
+        .grid-selection .resize-handle.w { left: -6px; top: 50%; transform: translateY(-50%); cursor: w-resize; }
+        .grid-selection .resize-handle.e { right: -6px; top: 50%; transform: translateY(-50%); cursor: e-resize; }
+
+        /* Controls Panel */
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Input Group */
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .input-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-field label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-field input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .input-field input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+
+        /* Arrow Buttons */
+        .arrow-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .arrow-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .arrow-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            color: #00d4ff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .arrow-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .arrow-btn:active {
+            transform: scale(0.95);
+        }
+
+        .arrow-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .arrow-placeholder {
+            width: 44px;
+            height: 44px;
+        }
+
+        /* Size Controls */
+        .size-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .size-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            color: #00d4ff;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .size-btn:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        /* Preview Area */
+        .preview-container {
+            margin-top: 8px;
+        }
+
+        .preview-box {
+            background: #0a0a0a;
+            border-radius: 12px;
+            overflow: hidden;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .preview-box canvas {
+            max-width: 100%;
+            max-height: 200px;
+        }
+
+        .preview-placeholder {
+            color: #444;
+            font-size: 0.9rem;
+        }
+
+        /* Download Button */
+        .download-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            margin-top: 16px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Image Info */
+        .image-info {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .image-info span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .image-info svg {
+            width: 16px;
+            height: 16px;
+            color: #00d4ff;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            margin-top: 20px;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast svg {
+            width: 20px;
+            height: 20px;
+            color: #4ade80;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .main-content {
+                gap: 16px;
+            }
+
+            .panel {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Image Part Getter</h1>
+            <p class="subtitle">Select, crop, and download any part of your image with precision</p>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="panel">
+                    <div class="upload-area" id="uploadArea">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p class="upload-text">Drop your image here or click to upload</p>
+                        <p class="upload-hint">Supports JPG, PNG, GIF, WebP</p>
+                    </div>
+                    <input type="file" id="fileInput" accept="image/*">
+
+                    <div class="image-container" id="imageContainer">
+                        <div class="image-wrapper" id="imageWrapper">
+                            <img id="uploadedImage" alt="Uploaded image">
+                            <div class="grid-selection" id="gridSelection">
+                                <div class="resize-handle nw"></div>
+                                <div class="resize-handle n"></div>
+                                <div class="resize-handle ne"></div>
+                                <div class="resize-handle w"></div>
+                                <div class="resize-handle e"></div>
+                                <div class="resize-handle sw"></div>
+                                <div class="resize-handle s"></div>
+                                <div class="resize-handle se"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="image-info" id="imageInfo" style="display: none;">
+                        <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            </svg>
+                            <span id="imageDimensions">0 × 0</span>
+                        </span>
+                        <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            </svg>
+                            <span id="fileName">No file</span>
+                        </span>
+                    </div>
+
+                    <div class="status-bar" id="statusBar">
+                        <div class="status-dot"></div>
+                        <span>Selection data auto-saved to browser storage</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="panel controls-panel">
+                    <div>
+                        <div class="panel-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            Position & Size
+                        </div>
+                        <div class="input-group">
+                            <div class="input-field">
+                                <label>X Position</label>
+                                <input type="number" id="inputX" value="0" min="0">
+                            </div>
+                            <div class="input-field">
+                                <label>Y Position</label>
+                                <input type="number" id="inputY" value="0" min="0">
+                            </div>
+                            <div class="input-field">
+                                <label>Width</label>
+                                <input type="number" id="inputW" value="100" min="1">
+                            </div>
+                            <div class="input-field">
+                                <label>Height</label>
+                                <input type="number" id="inputH" value="100" min="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="panel-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                            Move Selection
+                        </div>
+                        <div class="arrow-controls">
+                            <div class="arrow-row">
+                                <div class="arrow-placeholder"></div>
+                                <button class="arrow-btn" id="btnUp" title="Move Up">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="18 15 12 9 6 15"/>
+                                    </svg>
+                                </button>
+                                <div class="arrow-placeholder"></div>
+                            </div>
+                            <div class="arrow-row">
+                                <button class="arrow-btn" id="btnLeft" title="Move Left">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"/>
+                                    </svg>
+                                </button>
+                                <div class="arrow-placeholder"></div>
+                                <button class="arrow-btn" id="btnRight" title="Move Right">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="arrow-row">
+                                <div class="arrow-placeholder"></div>
+                                <button class="arrow-btn" id="btnDown" title="Move Down">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"/>
+                                    </svg>
+                                </button>
+                                <div class="arrow-placeholder"></div>
+                            </div>
+                        </div>
+                        <div class="size-controls">
+                            <button class="size-btn" id="btnExpand">Expand +10</button>
+                            <button class="size-btn" id="btnShrink">Shrink -10</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="panel-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            Preview
+                        </div>
+                        <div class="preview-container">
+                            <div class="preview-box" id="previewBox">
+                                <span class="preview-placeholder">Select an area to preview</span>
+                                <canvas id="previewCanvas" style="display: none;"></canvas>
+                            </div>
+                        </div>
+                        <button class="download-btn" id="downloadBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Download Selected Part
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span id="toastMessage">Saved!</span>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            image: null,
+            imageWidth: 0,
+            imageHeight: 0,
+            selection: { x: 0, y: 0, w: 100, h: 100 },
+            isDragging: false,
+            isResizing: false,
+            resizeHandle: null,
+            dragStart: { x: 0, y: 0 },
+            selectionStart: { x: 0, y: 0, w: 0, h: 0 },
+            step: 1,
+            lastImageData: null
+        };
+
+        // DOM Elements
+        const elements = {
+            uploadArea: document.getElementById('uploadArea'),
+            fileInput: document.getElementById('fileInput'),
+            imageContainer: document.getElementById('imageContainer'),
+            imageWrapper: document.getElementById('imageWrapper'),
+            uploadedImage: document.getElementById('uploadedImage'),
+            gridSelection: document.getElementById('gridSelection'),
+            inputX: document.getElementById('inputX'),
+            inputY: document.getElementById('inputY'),
+            inputW: document.getElementById('inputW'),
+            inputH: document.getElementById('inputH'),
+            btnUp: document.getElementById('btnUp'),
+            btnDown: document.getElementById('btnDown'),
+            btnLeft: document.getElementById('btnLeft'),
+            btnRight: document.getElementById('btnRight'),
+            btnExpand: document.getElementById('btnExpand'),
+            btnShrink: document.getElementById('btnShrink'),
+            previewBox: document.getElementById('previewBox'),
+            previewCanvas: document.getElementById('previewCanvas'),
+            downloadBtn: document.getElementById('downloadBtn'),
+            imageInfo: document.getElementById('imageInfo'),
+            imageDimensions: document.getElementById('imageDimensions'),
+            fileName: document.getElementById('fileName'),
+            toast: document.getElementById('toast'),
+            toastMessage: document.getElementById('toastMessage')
+        };
+
+        // LocalStorage Keys
+        const STORAGE_KEY = 'imagePartGetter';
+        const SELECTION_KEY = `${STORAGE_KEY}_selection`;
+
+        // Initialize
+        function init() {
+            loadSavedSelection();
+            setupEventListeners();
+        }
+
+        // Load saved selection from localStorage
+        function loadSavedSelection() {
+            const saved = localStorage.getItem(SELECTION_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    state.selection = data.selection;
+                    state.lastImageData = data.imageData || null;
+                    updateInputFields();
+                } catch (e) {
+                    console.warn('Failed to load saved selection');
+                }
+            }
+        }
+
+        // Save selection to localStorage
+        function saveSelection() {
+            const data = {
+                selection: { ...state.selection },
+                imageData: state.lastImageData
+            };
+            localStorage.setItem(SELECTION_KEY, JSON.stringify(data));
+        }
+
+        // Update input fields from state
+        function updateInputFields() {
+            elements.inputX.value = Math.round(state.selection.x);
+            elements.inputY.value = Math.round(state.selection.y);
+            elements.inputW.value = Math.round(state.selection.w);
+            elements.inputH.value = Math.round(state.selection.h);
+        }
+
+        // Update state from input fields
+        function updateStateFromInputs() {
+            state.selection.x = parseInt(elements.inputX.value) || 0;
+            state.selection.y = parseInt(elements.inputY.value) || 0;
+            state.selection.w = parseInt(elements.inputW.value) || 1;
+            state.selection.h = parseInt(elements.inputH.value) || 1;
+            updateGridSelection();
+            updatePreview();
+            saveSelection();
+        }
+
+        // Update grid selection position and size
+        function updateGridSelection() {
+            const img = elements.uploadedImage;
+            const displayWidth = img.clientWidth;
+            const displayHeight = img.clientHeight;
+
+            const scaleX = displayWidth / state.imageWidth;
+            const scaleY = displayHeight / state.imageHeight;
+
+            let x = state.selection.x * scaleX;
+            let y = state.selection.y * scaleY;
+            let w = state.selection.w * scaleX;
+            let h = state.selection.h * scaleY;
+
+            // Constrain to image bounds
+            x = Math.max(0, Math.min(x, displayWidth - w));
+            y = Math.max(0, Math.min(y, displayHeight - h));
+            w = Math.min(w, displayWidth - x);
+            h = Math.min(h, displayHeight - y);
+
+            elements.gridSelection.style.left = `${x}px`;
+            elements.gridSelection.style.top = `${y}px`;
+            elements.gridSelection.style.width = `${w}px`;
+            elements.gridSelection.style.height = `${h}px`;
+
+            // Update input fields with actual values
+            elements.inputX.value = Math.round(state.selection.x);
+            elements.inputY.value = Math.round(state.selection.y);
+            elements.inputW.value = Math.round(state.selection.w);
+            elements.inputH.value = Math.round(state.selection.h);
+        }
+
+        // Update preview canvas
+        function updatePreview() {
+            if (!state.image) return;
+
+            const canvas = elements.previewCanvas;
+            const ctx = canvas.getContext('2d');
+
+            const { x, y, w, h } = state.selection;
+
+            // Set canvas size to selection size
+            canvas.width = w;
+            canvas.height = h;
+
+            // Draw the cropped portion
+            ctx.drawImage(state.image, x, y, w, h, 0, 0, w, h);
+
+            // Show canvas, hide placeholder
+            canvas.style.display = 'block';
+            elements.previewBox.querySelector('.preview-placeholder').style.display = 'none';
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            elements.toastMessage.textContent = message;
+            elements.toast.classList.add('show');
+            setTimeout(() => {
+                elements.toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // File upload handling
+        function handleFileUpload(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                showToast('Please upload a valid image file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    state.image = img;
+                    state.imageWidth = img.width;
+                    state.imageHeight = img.height;
+
+                    elements.uploadedImage.src = e.target.result;
+                    elements.imageContainer.classList.add('has-image');
+
+                    // Update image info
+                    elements.imageDimensions.textContent = `${img.width} × ${img.height}`;
+                    elements.fileName.textContent = file.name;
+                    elements.imageInfo.style.display = 'flex';
+
+                    // Update saved image data
+                    state.lastImageData = e.target.result;
+
+                    // Constrain selection to image bounds
+                    constrainSelection();
+                    updateGridSelection();
+                    updatePreview();
+                    saveSelection();
+
+                    showToast('Image loaded successfully!');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Constrain selection to image bounds
+        function constrainSelection() {
+            const { x, y, w, h } = state.selection;
+            const maxX = state.imageWidth - w;
+            const maxY = state.imageHeight - h;
+
+            state.selection.x = Math.max(0, Math.min(x, maxX));
+            state.selection.y = Math.max(0, Math.min(y, maxY));
+            state.selection.w = Math.min(w, state.imageWidth - state.selection.x);
+            state.selection.h = Math.min(h, state.imageHeight - state.selection.y);
+        }
+
+        // Event Listeners
+        function setupEventListeners() {
+            // File upload
+            elements.uploadArea.addEventListener('click', () => elements.fileInput.click());
+            elements.fileInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) handleFileUpload(e.target.files[0]);
+            });
+
+            // Drag and drop
+            elements.uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                elements.uploadArea.classList.add('dragover');
+            });
+            elements.uploadArea.addEventListener('dragleave', () => {
+                elements.uploadArea.classList.remove('dragover');
+            });
+            elements.uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                elements.uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]);
+            });
+
+            // Input field changes
+            [elements.inputX, elements.inputY, elements.inputW, elements.inputH].forEach(input => {
+                input.addEventListener('change', updateStateFromInputs);
+                input.addEventListener('input', () => {
+                    // Real-time update
+                    updateStateFromInputs();
+                });
+            });
+
+            // Arrow buttons
+            elements.btnUp.addEventListener('click', () => {
+                state.selection.y = Math.max(0, state.selection.y - state.step);
+                updateGridSelection();
+                updateInputFields();
+                updatePreview();
+                saveSelection();
+            });
+            elements.btnDown.addEventListener('click', () => {
+                state.selection.y = Math.min(state.imageHeight - state.selection.h, state.selection.y + state.step);
+                updateGridSelection();
+                updateInputFields();
+                updatePreview();
+                saveSelection();
+            });
+            elements.btnLeft.addEventListener('click', () => {
+                state.selection.x = Math.max(0, state.selection.x - state.step);
+                updateGridSelection();
+                updateInputFields();
+                updatePreview();
+                saveSelection();
+            });
+            elements.btnRight.addEventListener('click', () => {
+                state.selection.x = Math.min(state.imageWidth - state.selection.w, state.selection.x + state.step);
+                updateGridSelection();
+                updateInputFields();
+                updatePreview();
+                saveSelection();
+            });
+
+            // Size buttons
+            elements.btnExpand.addEventListener('click', () => {
+                const expandAmount = 10;
+                const oldX = state.selection.x;
+                const oldY = state.selection.y;
+
+                state.selection.x = Math.max(0, state.selection.x - expandAmount / 2);
+                state.selection.y = Math.max(0, state.selection.y - expandAmount / 2);
+                state.selection.w = Math.min(state.imageWidth, state.selection.w + expandAmount);
+                state.selection.h = Math.min(state.imageHeight, state.selection.h + expandAmount);
+
+                constrainSelection();
+                updateGridSelection();
+                updateInputFields();
+                updatePreview();
+                saveSelection();
+            });
+            elements.btnShrink.addEventListener('click', () => {
+                const shrinkAmount = 10;
+                state.selection.w = Math.max(1, state.selection.w - shrinkAmount);
+                state.selection.h = Math.max(1, state.selection.h - shrinkAmount);
+
+                constrainSelection();
+                updateGridSelection();
+                updateInputFields();
+                updatePreview();
+                saveSelection();
+            });
+
+            // Grid selection dragging
+            elements.gridSelection.addEventListener('mousedown', startDrag);
+            elements.gridSelection.addEventListener('touchstart', startDrag, { passive: false });
+
+            // Resize handles
+            const handles = elements.gridSelection.querySelectorAll('.resize-handle');
+            handles.forEach(handle => {
+                handle.addEventListener('mousedown', startResize);
+                handle.addEventListener('touchstart', startResize, { passive: false });
+            });
+
+            // Document mouse/touch events
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchmove', handleMove, { passive: false });
+            document.addEventListener('touchend', endDrag);
+
+            // Download button
+            elements.downloadBtn.addEventListener('click', downloadSelected);
+
+            // Image load event for initial positioning
+            elements.uploadedImage.addEventListener('load', () => {
+                if (state.lastImageData && elements.uploadedImage.src === state.lastImageData) {
+                    updateGridSelection();
+                    updatePreview();
+                }
+            });
+
+            // Window resize
+            window.addEventListener('resize', () => {
+                if (state.image) {
+                    updateGridSelection();
+                }
+            });
+        }
+
+        function startDrag(e) {
+            if (e.target.classList.contains('resize-handle')) return;
+            e.preventDefault();
+
+            state.isDragging = true;
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+
+            state.dragStart = { x: clientX, y: clientY };
+            state.selectionStart = { ...state.selection };
+        }
+
+        function startResize(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            state.isResizing = true;
+            state.resizeHandle = e.target.className.replace('resize-handle ', '');
+
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+
+            state.dragStart = { x: clientX, y: clientY };
+            state.selectionStart = { ...state.selection };
+        }
+
+        function handleMove(e) {
+            if (!state.isDragging && !state.isResizing) return;
+            e.preventDefault();
+
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+            if (!clientX || !clientY) return;
+
+            const img = elements.uploadedImage;
+            const rect = img.getBoundingClientRect();
+            const scaleX = state.imageWidth / rect.width;
+            const scaleY = state.imageHeight / rect.height;
+
+            const deltaX = (clientX - state.dragStart.x) * scaleX;
+            const deltaY = (clientY - state.dragStart.y) * scaleY;
+
+            if (state.isDragging) {
+                state.selection.x = Math.max(0, Math.min(state.selectionStart.x + deltaX, state.imageWidth - state.selection.w));
+                state.selection.y = Math.max(0, Math.min(state.selectionStart.y + deltaY, state.imageHeight - state.selection.h));
+            } else if (state.isResizing) {
+                const handle = state.resizeHandle;
+
+                if (handle.includes('e')) {
+                    state.selection.w = Math.max(1, Math.min(state.selectionStart.w + deltaX, state.imageWidth - state.selection.x));
+                }
+                if (handle.includes('w')) {
+                    const newW = Math.max(1, state.selectionStart.w - deltaX);
+                    if (newW > 0) {
+                        state.selection.x = Math.max(0, state.selectionStart.x + deltaX);
+                        state.selection.w = newW;
+                    }
+                }
+                if (handle.includes('s')) {
+                    state.selection.h = Math.max(1, Math.min(state.selectionStart.h + deltaY, state.imageHeight - state.selection.y));
+                }
+                if (handle.includes('n')) {
+                    const newH = Math.max(1, state.selectionStart.h - deltaY);
+                    if (newH > 0) {
+                        state.selection.y = Math.max(0, state.selectionStart.y + deltaY);
+                        state.selection.h = newH;
+                    }
+                }
+            }
+
+            constrainSelection();
+            updateGridSelection();
+            updateInputFields();
+            updatePreview();
+        }
+
+        function endDrag() {
+            if (state.isDragging || state.isResizing) {
+                state.isDragging = false;
+                state.isResizing = false;
+                state.resizeHandle = null;
+                saveSelection();
+            }
+        }
+
+        function downloadSelected() {
+            if (!state.image) {
+                showToast('Please upload an image first');
+                return;
+            }
+
+            const canvas = elements.previewCanvas;
+
+            // Create download link
+            const link = document.createElement('a');
+            link.download = `cropped-image-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            showToast('Image downloaded successfully!');
+        }
+
+        // Initialize on load
+        init();
+    </script>
+
+<script>
+/**
+ * Iframe 元素高亮注入脚本
+ * 需要在目标网站中引入此脚本来支持跨域 iframe 高亮功能
+ *
+ * 使用方法：
+ * 1. 将此脚本添加到目标网站的 HTML 中
+ * 2. 或通过浏览器扩展、用户脚本等方式注入
+ */
+
+(function () {
+  "use strict";
+
+  // 检查是否在 iframe 中
+  if (window.self === window.top) {
+    return; // 不在 iframe 中，不执行
+  }
+
+  // 检查是否已经初始化过
+  if (window.__iframeHighlightInitialized) {
+    return;
+  }
+  window.__iframeHighlightInitialized = true;
+  console.log("Iframe 高亮脚本已加载");
+
+  // 创建高亮覆盖层
+  var overlay = document.createElement("div");
+  overlay.id = "iframe-highlight-overlay";
+  overlay.style.cssText = "\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    pointer-events: none;\n    z-index: 999999;\n    overflow: hidden;\n  ";
+
+  // 创建悬停高亮框（虚线边框）
+  var highlightBox = document.createElement("div");
+  highlightBox.id = "iframe-highlight-box";
+  highlightBox.style.cssText = "\n    position: absolute;\n    border: 2px dashed #007AFF;\n    background: rgba(0, 122, 255, 0.08);\n    pointer-events: none;\n    display: none;\n    transition: all 0.1s ease;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);\n    border-radius: 2px;\n  ";
+
+  // 创建选中节点的常驻高亮框（实线边框）
+  var selectedBox = document.createElement("div");
+  selectedBox.id = "iframe-selected-box";
+  selectedBox.style.cssText = "\n    position: absolute;\n    border: 2px solid #007AFF;\n    pointer-events: none;\n    display: none;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 107, 53, 0.4);\n    border-radius: 2px;\n    z-index: 1000000;\n  ";
+
+  // 创建悬停标签显示
+  var tagLabel = document.createElement("div");
+  tagLabel.id = "iframe-tag-label";
+  tagLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 2px 6px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 2px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000001;\n    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\n    font-weight: 500;\n  ";
+
+  // 创建选中节点标签
+  var selectedLabel = document.createElement("div");
+  selectedLabel.id = "iframe-selected-label";
+  selectedLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 3px 8px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 3px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000002;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n    font-weight: 600;\n  ";
+  overlay.appendChild(highlightBox);
+  overlay.appendChild(selectedBox);
+  overlay.appendChild(tagLabel);
+  overlay.appendChild(selectedLabel);
+  document.body.appendChild(overlay);
+
+  // 存储当前选中的元素
+  var selectedElement = null;
+  var highlightEnabled = false;
+
+  // 更新选中元素的高亮显示
+  function updateSelectedHighlight(element) {
+    console.log("updateSelectedHighlight called with:", element);
+    if (!element) {
+      selectedBox.style.display = "none";
+      selectedLabel.style.display = "none";
+      selectedElement = null;
+      console.log("Cleared selected highlight");
+      return;
+    }
+    selectedElement = element;
+    var rect = element.getBoundingClientRect();
+    console.log("Selected element rect:", rect);
+
+    // 更新选中高亮框位置
+    selectedBox.style.display = "block";
+    selectedBox.style.left = "".concat(rect.left - 2, "px");
+    selectedBox.style.top = "".concat(rect.top - 2, "px");
+    selectedBox.style.width = "".concat(rect.width + 4, "px");
+    selectedBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新选中标签位置和内容
+    selectedLabel.style.display = "block";
+    selectedLabel.textContent = "\u2713 <".concat(element.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 28;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 5) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    var labelWidth = selectedLabel.offsetWidth || 100; // 预估宽度
+    if (labelLeft + labelWidth > window.innerWidth - 10) {
+      labelLeft = window.innerWidth - labelWidth - 10;
+    }
+    selectedLabel.style.left = "".concat(Math.max(5, labelLeft), "px");
+    selectedLabel.style.top = "".concat(labelTop, "px");
+    console.log("Selected highlight positioned at:", {
+      left: selectedBox.style.left,
+      top: selectedBox.style.top,
+      width: selectedBox.style.width,
+      height: selectedBox.style.height
+    });
+  }
+  function getElementSelector(element) {
+    if (!(element instanceof Element)) throw new Error('Argument must be a DOM element');
+    var segments = [];
+    var current = element;
+    while (current !== document.documentElement) {
+      var selector = '';
+      // 优先检查唯一ID
+      if (current.id && document.querySelectorAll("#".concat(current.id)).length === 1) {
+        segments.unshift("#".concat(current.id));
+        break; // ID唯一，无需继续向上
+      }
+
+      // 生成类名选择器（取第一个有效类名）
+      var classes = Array.from(current.classList).filter(function (c) {
+        return !c.startsWith('js-');
+      });
+      var className = classes.length > 0 ? ".".concat(classes[0]) : '';
+
+      // 生成位置索引（nth-child）
+      var tag = current.tagName.toLowerCase();
+      if (!className) {
+        var siblings = Array.from(current.parentNode.children);
+        var index = siblings.findIndex(function (el) {
+          return el === current;
+        }) + 1;
+        selector = "".concat(tag, ":nth-child(").concat(index, ")");
+      } else {
+        selector = className;
+      }
+      segments.unshift(selector);
+      current = current.parentElement;
+    }
+
+    // 处理根元素
+    if (current === document.documentElement) {
+      segments.unshift('html');
+    }
+    return segments.join(' > ');
+  }
+
+  // 获取元素文本内容
+  function getElementText(element) {
+    var _element$textContent;
+    if (element.tagName === "INPUT") {
+      return element.value || element.placeholder || "";
+    }
+    if (element.tagName === "TEXTAREA") {
+      return element.value || element.placeholder || "";
+    }
+    var text = ((_element$textContent = element.textContent) === null || _element$textContent === void 0 ? void 0 : _element$textContent.trim()) || "";
+    return text.length > 50 ? text.substring(0, 50) + "..." : text;
+  }
+
+  // 获取元素属性信息
+  function getElementAttributes(element) {
+    var attrs = {};
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      attrs[attr.name] = attr.value;
+    }
+    return attrs;
+  }
+
+  // 鼠标悬停事件处理
+  function handleMouseOver(e) {
+    if (!highlightEnabled) return;
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免高亮 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 如果是已选中的元素，不显示悬停高亮
+    if (target === selectedElement) {
+      highlightBox.style.display = "none";
+      tagLabel.style.display = "none";
+      return;
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+
+    // 更新悬停高亮框位置
+    highlightBox.style.display = "block";
+    highlightBox.style.left = "".concat(rect.left - 2, "px");
+    highlightBox.style.top = "".concat(rect.top - 2, "px");
+    highlightBox.style.width = "".concat(rect.width + 4, "px");
+    highlightBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新标签位置和内容
+    tagLabel.style.display = "block";
+    tagLabel.textContent = "<".concat(target.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 22;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 0) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    if (labelLeft + tagLabel.offsetWidth > window.innerWidth) {
+      labelLeft = window.innerWidth - tagLabel.offsetWidth - 5;
+    }
+    tagLabel.style.left = "".concat(Math.max(0, labelLeft), "px");
+    tagLabel.style.top = "".concat(labelTop, "px");
+
+    // 发送消息到父窗口
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 鼠标离开事件处理
+  function handleMouseOut(e) {
+    if (!highlightEnabled) return;
+    var relatedTarget = e.relatedTarget;
+
+    // 如果鼠标移动到高亮相关元素上，不隐藏高亮
+    if (relatedTarget && (relatedTarget === highlightBox || relatedTarget === tagLabel || relatedTarget === overlay || relatedTarget === selectedBox || relatedTarget === selectedLabel)) {
+      return;
+    }
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: null,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 点击事件处理
+  function handleClick(e) {
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免处理 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 检查是否是交互元素，这些元素需要保留默认行为
+    var isInteractiveElement = ['input', 'textarea', 'select', 'button', 'a'].includes(target.tagName.toLowerCase());
+
+    // 如果高亮功能启用，对于非交互元素阻止默认行为和事件传播
+    if (highlightEnabled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+    console.log("Element clicked:", {
+      tagName: target.tagName,
+      selector: selector,
+      rect: rect
+    });
+
+    // 立即更新选中高亮
+    updateSelectedHighlight(target);
+
+    // 隐藏悬停高亮，因为现在是选中状态
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-click",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 监听来自父窗口的消息
+  function handleParentMessage(event) {
+    console.log("Received message from parent:", event.data);
+    if (event.data.type === "iframe-highlight-toggle") {
+      var enabled = event.data.enabled;
+      console.log("Highlight toggle:", enabled);
+      if (enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "enable-iframe-highlight") {
+      console.log("Enable iframe highlight");
+      enableHighlight();
+    } else if (event.data.type === "disable-iframe-highlight") {
+      console.log("Disable iframe highlight");
+      disableHighlight();
+    } else if (event.data.type === "toggle-iframe-highlight") {
+      var _enabled = event.data.enabled !== undefined ? event.data.enabled : !highlightEnabled;
+      console.log("Toggle iframe highlight to:", _enabled);
+      if (_enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "update-selected-element") {
+      var selector = event.data.selector;
+      console.log("Update selected element with selector:", selector);
+      if (selector) {
+        try {
+          var element = document.querySelector(selector);
+          console.log("Found element by selector:", element);
+          updateSelectedHighlight(element);
+        } catch (error) {
+          console.warn("Failed to select element:", error);
+          updateSelectedHighlight(null);
+        }
+      } else {
+        updateSelectedHighlight(null);
+      }
+    } else if (event.data.type === "clear-selected-element") {
+      console.log("Clear selected element");
+      updateSelectedHighlight(null);
+    }
+  }
+
+  // 启用高亮功能
+  function enableHighlight() {
+    console.log("Enabling highlight");
+    document.addEventListener("mouseover", handleMouseOver, true);
+    document.addEventListener("mouseout", handleMouseOut, true);
+    document.addEventListener("click", handleClick, true);
+    highlightEnabled = true;
+    overlay.style.display = "block";
+  }
+
+  // 禁用高亮功能
+  function disableHighlight() {
+    console.log("Disabling highlight");
+    highlightEnabled = false;
+    // 保持事件监听器，但通过 highlightEnabled 变量控制行为
+    // 这样可以保留选中状态的显示
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    // 不隐藏 selectedBox 和 selectedLabel，保留选中状态
+  }
+
+  // 完全禁用高亮功能（移除所有监听器）
+  function fullyDisableHighlight() {
+    console.log("Fully disabling highlight");
+    highlightEnabled = false;
+    document.removeEventListener("mouseover", handleMouseOver, true);
+    document.removeEventListener("mouseout", handleMouseOut, true);
+    document.removeEventListener("click", handleClick, true);
+    overlay.style.display = "none";
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    selectedBox.style.display = "none";
+    selectedLabel.style.display = "none";
+  }
+
+  // 添加事件监听
+  enableHighlight();
+  window.addEventListener("message", handleParentMessage);
+
+  // 暴露全局函数供外部调用
+  window.__iframeHighlightControl = {
+    enable: enableHighlight,
+    disable: disableHighlight,
+    fullyDisable: fullyDisableHighlight,
+    isEnabled: function isEnabled() {
+      return highlightEnabled;
+    },
+    getSelectedElement: function getSelectedElement() {
+      return selectedElement;
+    },
+    updateSelected: updateSelectedHighlight,
+    // 通过消息发送开关控制
+    sendToggleMessage: function sendToggleMessage(enabled) {
+      window.parent.postMessage({
+        type: 'iframe-highlight-status',
+        enabled: enabled || highlightEnabled,
+        source: 'iframe-highlight-injector'
+      }, '*');
+    }
+  };
+
+  // 通知父窗口脚本已加载
+  try {
+    window.parent.postMessage({
+      type: "iframe-highlight-ready",
+      data: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: Date.now()
+      },
+      source: "iframe-highlight-injector"
+    }, "*");
+  } catch (error) {
+    console.warn("无法发送就绪消息到父窗口:", error);
+  }
+
+  // 清理函数
+  window.__iframeHighlightCleanup = function () {
+    fullyDisableHighlight();
+    window.removeEventListener("message", handleParentMessage);
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+    delete window.__iframeHighlightInitialized;
+    delete window.__iframeHighlightCleanup;
+  };
+})();
+
+</script>
+</body>
+</html>
