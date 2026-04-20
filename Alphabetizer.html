@@ -1,128 +1,207 @@
 <!DOCTYPE html>
-<html id="viewport">
-  <head>
-    <link rel="stylesheet" href="css/index.css" />
-    <title>Alphabetizer</title>
-   <style type="text/css" media="all">
-    body {
-  padding: 2em 0;
-}
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Alphabetizer & Sorter</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
 
-.block {
-  display: block;
-  width: 100%;
-}
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
 
-textarea {
-  height: 200px;
-  resize: vertical;
-}
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
 
-.progressDialog, .button {
-  position: absolute;
-  top : -1000px;
-  left: -1000px;
-}
+        h1 { margin-top: 0; font-size: 1.5rem; color: var(--primary); }
 
-   </style>
-  </head>
-  <body>
-   <button id="str" class="btn--default block" data-action="alphabetize">Alphabetize</button>
-   <button id="num" class="btn--default block" data-action="numerize">Numerize</button>
-   <button id="rstr" class="btn--default block" data-action="reverse">Numerize</button>
-			<textarea class="form__input" data-action="input-list" placeholder="Alphabetize your text here..."></textarea>
-			<textarea class="form__input" data-action="num-list" placeholder="..."></textarea>
-			<textarea class="form__input" data-action="rstr-list" placeholder="..."></textarea>
-			<div id="t"></div>
-   <script>
-    const Str = document.querySelector("#str");
-const Num = document.querySelector("#num");
-const RStr = document.querySelector("#rstr");
-var txt = document.querySelector("[data-action=input-list]");
-var num = document.querySelector("[data-action=num-list]");
-var rstr = document.querySelector("[data-action=rstr-list]");
+        .control-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
 
-if (localStorage.getItem("alphabetize")) {
-  txt.value = localStorage.getItem("alphabetize");
-}
-document.querySelector("[data-action=alphabetize]").onclick = function() {
-  txt.value = (txt.value.split("\n").sort(caseInsensitive).join("\n"))
-  function caseInsensitive(a, b) {
-    return a.toLowerCase().localeCompare(b.toLowerCase())
-  }
-  localStorage.setItem("alphabetize", txt.value);
-}
-if (localStorage.getItem("reverse")) {
-  txt.value = localStorage.getItem("reverse");
-}
-document.querySelector("[data-action=rstr]").onclick = function() {
-  txt.value = (txt.value.split("\n").sort(caseInsensitive).join("\n"))
-  function caseInsensitive(a, b) {
-    return a.toLowerCase().localeCompare(b.toLowerCase())
-  }
-  localStorage.setItem("reverse", txt.value);
-}
-if (localStorage.getItem("numerize")) {
-  num.value = localStorage.getItem("numerize");
-}
-document.querySelector("[data-action=numerize]").onclick = function() {
-  let numR=num.value.split("\n");
-  let parN=[];
-  for (let prop in numR) {
-  	parN.push(Number.parseInt(numR[prop]));
-  }
-  parN.sort(function(a, b) {
-  	return a - b;
-  });
-  let ptxt=``;
-  for (let pp in parN) {
-  	ptxt+=`${parN[pp]}\n`;
-  }
-  num.value=ptxt;
-  localStorage.setItem("numerize", num.value);
-}
+        label { font-size: 0.875rem; font-weight: 600; display: block; margin-bottom: 0.5rem; }
 
-var ko={
-18:["Banda Aceh",300],
-29:["Medan",800],
-19:["Padang",33098],
-26:["Pekanbaru",550],
-9:["Jambi",85],
-5:["Tanjung Pinang",55],
-11:["Bengkulu",100],
-24:["Palembang",500],
-6:["Pangkal Pinang",60],
-21:["Bandar Lampung",350],
-34:["Jakarta",2800],
-30:["Serang",900],
-33:["Bandung",2000],
-4:["Yogyakarta",7.5],
-31:["Semarang",1200],
-32:["Surabaya",1900],
-23:["Pontianak",450],
-12:["Palangkaraya",110],
-20:["Banjarmasin",350],
-28:["Samarinda",700],
-1:["Tanjung Selor",3.3],
-17:["Manado",250],
-8:["Gorontalo",80],
-2:["Palu",5.8],
-7:["Mamuju",70],
-27:["Makassar",600],
-13:["Kendari",120],
-25:["Denpasar",500],
-16:["Mataram",200],
-15:["Kupang",150],
-10:["Sofifi",90],
-14:["Ambon",150],
-3:["Manokwari",6.4],
-22:["Jayapura",400],
-}
-console.log(ko);
-for (let prop in ko) {
-	document.querySelector("#t").innerHTML+=`<icol>${ko[prop][0]}<br>${ko[prop][1]}<hr/></icol>`;
-}
+        select, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
 
-   </script>
-  </body>
+        textarea {
+            height: 250px;
+            font-family: 'Fira Code', monospace;
+            resize: vertical;
+            margin-bottom: 1rem;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.5rem;
+        }
+
+        button {
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover { opacity: 0.9; }
+        button.secondary { background: #64748b; }
+
+        #stats {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Sortir Master Pro</h1>
+    
+    <div class="control-group">
+        <div>
+            <label>Mode Prioritas</label>
+            <select id="sortOrder">
+                <option value="ans">Alphabet - Number - Symbol</option>
+                <option value="san">Symbol - Alphabet - Number</option>
+                <option value="nsa">Number - Symbol - Alphabet</option>
+                <option value="asn">Alphabet - Symbol - Number</option>
+                <option value="sna">Symbol - Number - Alphabet</option>
+                <option value="nas">Number - Alphabet - Symbol</option>
+            </select>
+        </div>
+        <div>
+            <label>Arah Urutan</label>
+            <select id="direction">
+                <option value="asc">Ascending (A-Z / 1-10)</option>
+                <option value="desc">Descending (Z-A / 10-1)</option>
+            </select>
+        </div>
+    </div>
+
+    <textarea id="inputList" placeholder="Masukkan teks di sini, pisahkan dengan baris baru..."></textarea>
+
+    <div class="button-grid">
+        <button onclick="processSort()">Sortir Sekarang</button>
+        <button class="secondary" onclick="clearAll()">Hapus Semua</button>
+        <button class="secondary" onclick="copyText()">Salin Hasil</button>
+    </div>
+
+    <div id="stats">Baris terdeteksi: <span id="lineCount">0</span></div>
+</div>
+
+<script>
+    const inputArea = document.getElementById('inputList');
+    const sortOrder = document.getElementById('sortOrder');
+    const direction = document.getElementById('direction');
+    const lineCount = document.getElementById('lineCount');
+
+    // Load dari LocalStorage jika ada
+    if (localStorage.getItem("savedText")) {
+        inputArea.value = localStorage.getItem("savedText");
+        updateCount();
+    }
+
+    inputArea.addEventListener('input', updateCount);
+
+    function updateCount() {
+        const lines = inputArea.value.split('\n').filter(l => l.trim() !== "");
+        lineCount.innerText = lines.length;
+    }
+
+    function getType(str, orderValue) {
+        if (!str) return 99;
+        const firstChar = str.trim().charAt(0);
+        
+        const isAlpha = /[a-zA-Z]/.test(firstChar);
+        const isNum = /[0-9]/.test(firstChar);
+        
+        // Ambil urutan berdasarkan value dropdown (misal: "ans")
+        const mapping = {
+            'a': isAlpha,
+            'n': isNum,
+            's': !isAlpha && !isNum
+        };
+
+        const priorities = orderValue.split(''); // ['a', 'n', 's']
+        if (mapping[priorities[0]]) return 1;
+        if (mapping[priorities[1]]) return 2;
+        if (mapping[priorities[2]]) return 3;
+        return 4;
+    }
+
+    function processSort() {
+        let lines = inputArea.value.split('\n').filter(line => line.trim() !== "");
+        const order = sortOrder.value;
+        const dir = direction.value;
+
+        lines.sort((a, b) => {
+            const typeA = getType(a, order);
+            const typeB = getType(b, order);
+
+            // Jika tipe berbeda, urutkan berdasarkan prioritas tipe
+            if (typeA !== typeB) {
+                return typeA - typeB;
+            }
+
+            // Jika tipe sama, gunakan Natural Sort (1, 2, 10)
+            return a.localeCompare(b, undefined, {
+                numeric: true,
+                sensitivity: 'base'
+            });
+        });
+
+        if (dir === 'desc') lines.reverse();
+
+        inputArea.value = lines.join('\n');
+        localStorage.setItem("savedText", inputArea.value);
+        updateCount();
+    }
+
+    function clearAll() {
+        if(confirm("Hapus semua teks?")) {
+            inputArea.value = "";
+            localStorage.removeItem("savedText");
+            updateCount();
+        }
+    }
+
+    function copyText() {
+        inputArea.select();
+        document.execCommand('copy');
+        alert("Teks berhasil disalin!");
+    }
+</script>
+
+</body>
 </html>
