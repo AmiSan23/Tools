@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html id="viewport">
+  <head>
+    <link rel="stylesheet" href="css/index.css" />
+    <title>Alphabetizer</title>
+   <style type="text/css" media="all">
+    body {
+  padding: 2em 0;
+}
+
+.block {
+  display: block;
+  width: 100%;
+}
+
+textarea {
+  height: 200px;
+  resize: vertical;
+}
+
+.progressDialog, .button {
+  position: absolute;
+  top : -1000px;
+  left: -1000px;
+}
+
+   </style>
+  </head>
+  <body>
+   <button id="str" class="btn--default block" data-action="alphabetize">Alphabetize</button>
+   <button id="num" class="btn--default block" data-action="numerize">Numerize</button>
+   <button id="rstr" class="btn--default block" data-action="reverse">Numerize</button>
+			<textarea class="form__input" data-action="input-list" placeholder="Alphabetize your text here..."></textarea>
+			<textarea class="form__input" data-action="num-list" placeholder="..."></textarea>
+			<textarea class="form__input" data-action="rstr-list" placeholder="..."></textarea>
+			<div id="t"></div>
+   <script>
+    const Str = document.querySelector("#str");
+const Num = document.querySelector("#num");
+const RStr = document.querySelector("#rstr");
+var txt = document.querySelector("[data-action=input-list]");
+var num = document.querySelector("[data-action=num-list]");
+var rstr = document.querySelector("[data-action=rstr-list]");
+
+if (localStorage.getItem("alphabetize")) {
+  txt.value = localStorage.getItem("alphabetize");
+}
+document.querySelector("[data-action=alphabetize]").onclick = function() {
+  txt.value = (txt.value.split("\n").sort(caseInsensitive).join("\n"))
+  function caseInsensitive(a, b) {
+    return a.toLowerCase().localeCompare(b.toLowerCase())
+  }
+  localStorage.setItem("alphabetize", txt.value);
+}
+if (localStorage.getItem("reverse")) {
+  txt.value = localStorage.getItem("reverse");
+}
+document.querySelector("[data-action=rstr]").onclick = function() {
+  txt.value = (txt.value.split("\n").sort(caseInsensitive).join("\n"))
+  function caseInsensitive(a, b) {
+    return a.toLowerCase().localeCompare(b.toLowerCase())
+  }
+  localStorage.setItem("reverse", txt.value);
+}
+if (localStorage.getItem("numerize")) {
+  num.value = localStorage.getItem("numerize");
+}
+document.querySelector("[data-action=numerize]").onclick = function() {
+  let numR=num.value.split("\n");
+  let parN=[];
+  for (let prop in numR) {
+  	parN.push(Number.parseInt(numR[prop]));
+  }
+  parN.sort(function(a, b) {
+  	return a - b;
+  });
+  let ptxt=``;
+  for (let pp in parN) {
+  	ptxt+=`${parN[pp]}\n`;
+  }
+  num.value=ptxt;
+  localStorage.setItem("numerize", num.value);
+}
+
+var ko={
+18:["Banda Aceh",300],
+29:["Medan",800],
+19:["Padang",33098],
+26:["Pekanbaru",550],
+9:["Jambi",85],
+5:["Tanjung Pinang",55],
+11:["Bengkulu",100],
+24:["Palembang",500],
+6:["Pangkal Pinang",60],
+21:["Bandar Lampung",350],
+34:["Jakarta",2800],
+30:["Serang",900],
+33:["Bandung",2000],
+4:["Yogyakarta",7.5],
+31:["Semarang",1200],
+32:["Surabaya",1900],
+23:["Pontianak",450],
+12:["Palangkaraya",110],
+20:["Banjarmasin",350],
+28:["Samarinda",700],
+1:["Tanjung Selor",3.3],
+17:["Manado",250],
+8:["Gorontalo",80],
+2:["Palu",5.8],
+7:["Mamuju",70],
+27:["Makassar",600],
+13:["Kendari",120],
+25:["Denpasar",500],
+16:["Mataram",200],
+15:["Kupang",150],
+10:["Sofifi",90],
+14:["Ambon",150],
+3:["Manokwari",6.4],
+22:["Jayapura",400],
+}
+console.log(ko);
+for (let prop in ko) {
+	document.querySelector("#t").innerHTML+=`<icol>${ko[prop][0]}<br>${ko[prop][1]}<hr/></icol>`;
+}
+
+   </script>
+  </body>
+</html>
