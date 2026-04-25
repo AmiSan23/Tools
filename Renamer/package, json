@@ -4,7 +4,7 @@
   "description": "Web app untuk batch renaming file (client-side)",
   "private": true,
   "scripts": {
-    "start": "live-server --open=./index.html",
+    "start": "live-server --open=./BulkRenamer.html",
     "build": "echo \"No build step configured\""
   },
   "dependencies": {
