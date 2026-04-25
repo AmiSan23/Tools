@@ -111,29 +111,11 @@
   }
 
   function formatDateTokens(formatStr, timeStr){
-    // Simple token replacement: D, M, Y, H, m, s
-    const now = new Date();
-    const tokens = {
-      'D': String(now.getDate()).padStart(2,'0'),
-      'M': String(now.getMonth()+1).padStart(2,'0'),
-      'Y': String(now.getFullYear()),
-      'H': String(now.getHours()).padStart(2,'0'),
-      'm': String(now.getMinutes()).padStart(2,'0'),
-      's': String(now.getSeconds()).padStart(2,'0')
-    };
-    let out = formatStr || '';
-    Object.keys(tokens).forEach(k => {
-      out = out.replace(new RegExp(k, 'g'), tokens[k]);
-    });
-    if(timeStr){
-      let t = timeStr;
-      Object.keys(tokens).forEach(k => {
-        t = t.replace(new RegExp(k, 'g'), tokens[k]);
-      });
-      out = out ? `${out}${out ? '_' : ''}${t}` : t;
-    }
-    return out;
-  }
+  const fmt = (formatStr || '') + (timeStr ? ' ' + timeStr : '');
+  if(!fmt.trim()) return '';
+  return dayjs().format(fmt);
+}
+
 
   // ---------- Core transform function ----------
   function transformName(originalBase, ext, index, opts){
@@ -434,10 +416,11 @@
       alert('Tidak ada file untuk diunduh.');
       return;
     }
-    if(!window.JSZip || !window.saveAs){
-      alert('JSZip atau FileSaver tidak ditemukan. Tambahkan CDN JSZip + FileSaver untuk mengaktifkan fitur ZIP.');
-      return;
-    }
+    if (!window.JSZip || !window.saveAs) {
+  console.warn('JSZip/FileSaver belum tersedia');
+  return;
+}
+
     const zip = new JSZip();
     const opts = gatherOptions();
     // Add files with new names
