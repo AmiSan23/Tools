@@ -1,0 +1,21 @@
+{
+  "name": "multiple-renamer",
+  "version": "1.0.0",
+  "description": "Web app untuk batch renaming file (client-side)",
+  "private": true,
+  "scripts": {
+    "start": "live-server --open=./index.html",
+    "build": "echo \"No build step configured\""
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "file-saver": "^2.0.5",
+    "sortablejs": "^1.15.0",
+    "dayjs": "^1.11.9",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}
+
