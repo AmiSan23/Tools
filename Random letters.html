@@ -1,0 +1,27 @@
+<form action="" method="post" accept-charset="utf-8">
+<textarea id="input" name="texts" rows="5" cols="50"></textarea>
+<button type="submit">SAVE</button>
+</form>
+<div class="txt"></div>
+<script type="text/javascript" charset="utf-8">
+var text=document.querySelector("#input").value;
+var Txt=document.querySelector('.txt');
+var tInput=text.split(' ');
+
+function randomizeLetterOrder(str) {
+  let array = [];
+  str.split("").forEach(function(letter) {
+    array.push(letter.toUpperCase())
+  });
+  array.sort(function() {
+    return Math.random() - 0.5
+  });
+  let newStr = "";
+  for(let i = 0; i < array.length; i++){
+    newStr += array[i];
+  }
+  return newStr.toLowerCase();
+}
+
+Txt.innerHTML=randomizeLetterOrder('apple');  // memungkinkan pengembalian huruf dari kata seperti 'a', 'p', 'l', 'e', atau 't'
+</script>

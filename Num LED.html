@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>10-Digit LED Board</title>
+ <style>
+  /* --- Basic Styling --- */
+  body {
+   background-color: #1a1a1a;
+   font-family: sans-serif;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   justify-content: center;
+   min-height: 100vh;
+   margin: 0;
+   padding: 20px;
+   box-sizing: border-box;
+   color: #e0e0e0;
+  }
+  h1 {
+   text-align: center;
+  }
+
+  /* --- Container for all 10 digits --- */
+  .display-container {
+   display: flex;
+   flex-wrap: wrap;
+   /* Allows digits to wrap on smaller screens */
+   justify-content: center;
+   gap: 15px;
+   /* Spacing between digits */
+   margin-bottom: 30px;
+   padding: 10px;
+   background-color: #000;
+   border-radius: 10px;
+   border: 2px solid #444;
+  }
+  /* --- A single digit's container --- */
+  .digit {
+   position: relative;
+   /* Scaled down for 10 digits */
+   width: 60px;
+   height: 100px;
+  }
+  /* --- Individual Segment Styling --- */
+  .segment {
+   background-color: #111;
+   /* Off state */
+   border-radius: 10px;
+   position: absolute;
+   transition: background-color 0.2s;
+   cursor: pointer;
+   /* Makes it obvious you can click it */
+  }
+  .segment:hover {
+   background-color: #555;
+  }
+  /* --- Lit/On State --- */
+  .segment.on {
+   background-color: #ff007f;
+   /* On state color (Spring Green) */
+   /*box-shadow: 0 0 10px #00ff7f, 0 0 15px #32cd32;*/
+  }
+  .segment.on:hover {
+   background-color: #ff3399;
+  }
+  /* --- Positioning for the smaller segments --- */
+  .seg-a {
+   width: 40px;
+   height: 10px;
+   top: 0;
+   left: 10px;
+  }
+  .seg-b {
+   width: 10px;
+   height: 40px;
+   top: 10px;
+   left: 50px;
+  }
+  .seg-c {
+   width: 10px;
+   height: 40px;
+   top: 50px;
+   left: 50px;
+  }
+  .seg-d {
+   width: 40px;
+   height: 10px;
+   top: 90px;
+   left: 10px;
+  }
+  .seg-e {
+   width: 10px;
+   height: 40px;
+   top: 50px;
+   left: 0;
+  }
+  .seg-f {
+   width: 10px;
+   height: 40px;
+   top: 10px;
+   left: 0;
+  }
+  .seg-g {
+   width: 40px;
+   height: 10px;
+   top: 45px;
+   left: 10px;
+  }
+  /* --- Controls Styling --- */
+  .controls {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 15px;
+  }
+  .controls input, .controls button {
+   font-size: 16px;
+   padding: 10px;
+   border-radius: 5px;
+   border: 1px solid #555;
+   background-color: #111;
+   color: #fff;
+   text-align: center;
+  }
+  .controls button:hover {
+   background-color: #008a45;
+   cursor: pointer;
+  }
+ </style>
+</head>
+<body>
+ <div class="display-container" id="displayContainer"></div>
+ <div class="controls">
+  <div>
+   <input type="text" id="numberInput" maxlength="10" placeholder="Enter up to 10 digits">
+   <button onclick="displayCustomNumber()">Show Number</button>
+  </div>
+  <div>
+   <button onclick="clearDisplay()">Clear All</button>
+   <button onclick="startPattern()">Start Counter</button>
+   <button onclick="stopPattern()">Stop Counter</button>
+  </div>
+ </div>
+ <script>
+  // --- JavaScript Logic ---
+  const displayContainer = document.getElementById('displayContainer');
+
+  // This is the map of which segments to turn on for each number
+  const numberMap = {
+   '0': ['a',
+    'b',
+    'c',
+    'd',
+    'e',
+    'f'],
+   '1': ['b',
+    'c'],
+   '2': ['a',
+    'b',
+    'g',
+    'e',
+    'd'],
+   '3': ['a',
+    'b',
+    'g',
+    'c',
+    'd'],
+   '4': ['f',
+    'g',
+    'b',
+    'c'],
+   '5': ['a',
+    'f',
+    'g',
+    'c',
+    'd'],
+   '6': ['a',
+    'f',
+    'g',
+    'e',
+    'c',
+    'd'],
+   '7': ['a',
+    'b',
+    'c'],
+   '8': ['a',
+    'b',
+    'c',
+    'd',
+    'e',
+    'f',
+    'g'],
+   '9': ['a',
+    'b',
+    'c',
+    'd',
+    'f',
+    'g']
+  };
+  /**
+  * Generates the 10-digit display HTML and adds it to the page
+  */
+  function createDisplay() {
+   const segmentNames = ['a',
+    'b',
+    'c',
+    'd',
+    'e',
+    'f',
+    'g'];
+   for (let i = 0; i < 10; i++) {
+    const digitDiv = document.createElement('div');
+    digitDiv.className = 'digit';
+    digitDiv.dataset.digitIndex = i; // Store index for easy access
+    segmentNames.forEach(name => {
+     const segmentDiv = document.createElement('div');
+     segmentDiv.className = `segment seg-${name}`;
+     digitDiv.appendChild(segmentDiv);
+    });
+    displayContainer.appendChild(digitDiv);
+   }
+  }
+
+  /**
+  * Clears the entire 10-digit display.
+  */
+  function clearDisplay() {
+   const allSegments = document.querySelectorAll('.segment');
+   allSegments.forEach(seg => seg.classList.remove('on'));
+  }
+  /**
+  * Function to display a string of numbers on the LED board
+  * @param {string} str - The string of numbers to display (e.g., "123")
+  */
+  function displayNumberString(str = '') {
+   clearDisplay();
+   // Pad the string to 10 characters, aligning the number to the right
+   const paddedStr = str.toString().padStart(10, ' ');
+   for (let i = 0; i < 10; i++) {
+    const char = paddedStr[i];
+
+    // Find the segments to light up from our map
+    const segmentsToLight = numberMap[char];
+
+    if (segmentsToLight) {
+     segmentsToLight.forEach(segKey => {
+      // Find the correct segment in the DOM for the current digit
+      const segment = document.querySelector(
+       `.digit[data-digit-index='${i}'] .seg-${segKey}`
+      );
+      if (segment) {
+       segment.classList.add('on');
+      }
+     });
+    }
+   }
+  }
+
+  // --- Functions for the Buttons ---
+  function displayCustomNumber() {
+   const input = document.getElementById('numberInput');
+   displayNumberString(input.value);
+  }
+  let patternInterval; // Variable to hold our pattern timer
+  let counter = 0;
+  function startPattern() {
+   stopPattern(); // Stop any existing pattern
+   patternInterval = setInterval(() => {
+    displayNumberString(counter.toString());
+    counter++;
+   },
+    1000); // Change number every second
+  }
+  function stopPattern() {
+   clearInterval(patternInterval);
+  }
+  // --- Event Listener for Clickable Segments ---
+  displayContainer.addEventListener('click', (event) => {
+   // Check if the clicked item is a segment
+   if (event.target.classList.contains('segment')) {
+    // Toggle the 'on' class to turn it on or off
+    event.target.classList.toggle('on');
+   }
+  });
+
+  // --- Initial Setup ---
+  window.onload = () => {
+   createDisplay();
+   // Display a welcome message, for example "2025"
+   displayNumberString('2025');
+  };
+ </script>
+</body>
+</html>
