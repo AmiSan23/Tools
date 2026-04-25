@@ -1,27 +1,26 @@
-/* BulkRenamer.js
+/* BulkRenamer.js (fixed)
    Core logic for BulkRenamer.html
-   - Place this file alongside BulkRenamer.html and BulkRenamer.css
-   - Optional libraries: JSZip, FileSaver, SortableJS, dayjs, lodash (CDN included in HTML)
+   - Main fix: debouncedPreview is declared before any usage
 */
 
 (() => {
   // ---------- State ----------
   const state = {
-    files: [], // { file: File, name: string, ext: string, selected: true }
+    files: [],
     options: {
       basedName: '',
       indexSeparator: '_',
       indexStart: 1,
       indexInterval: 1,
       indexPadding: 0,
-      capitalization: 'title', // upper, lower, sentence, title
+      capitalization: 'title',
       prefix: '',
       suffix: '',
-      dateFormat: '', // e.g. DD-MM-YYYY or D-M-Y (simple tokens supported)
-      timeFormat: '', // e.g. HH-mm-ss
+      dateFormat: '',
+      timeFormat: '',
       addText1: '',
-      arrayInput: [], // array of strings
-      trim: 'none', // none, start, end, all
+      arrayInput: [],
+      trim: 'none',
       replaceFind: '',
       replaceWith: '',
       regexList: [],
@@ -59,7 +58,7 @@
   const addRegexBtn = $('#addRegexBtn');
   const regexListEl = $('#regexList');
   const positionsEl = $('#positions');
-  const extensionsFileEl = $('#extensionsFile'); // may be null if not present
+  const extensionsFileEl = $('#extensionsFile'); // may be null
 
   const selectAllBtn = $('#selectAllBtn');
   const clearBtn = $('#clearBtn');
@@ -74,6 +73,12 @@
       t = setTimeout(() => fn(...args), wait);
     };
   }
+
+  // --- Move debouncedPreview here so it's available before any listeners use it ---
+  const debouncedPreview = debounce(() => {
+    gatherOptions();
+    renderPreview();
+  }, 220);
 
   function splitExt(filename) {
     const dot = filename.lastIndexOf('.');
@@ -112,13 +117,9 @@
     return str;
   }
 
-  // If dayjs is available, use it; otherwise fallback to simple token replacement
   function formatDateTokens(formatStr, timeStr) {
     if ((!formatStr || !formatStr.trim()) && (!timeStr || !timeStr.trim())) return '';
     if (window.dayjs) {
-      // Convert simple tokens to dayjs tokens if user used D/M/Y style
-      // Accept common tokens: D, DD, M, MM, Y, YYYY, H, HH, m, mm, s, ss
-      // If user used single-letter tokens like D M Y, replace with dayjs equivalents
       let fmt = formatStr || '';
       fmt = fmt.replace(/\bY\b/g, 'YYYY').replace(/\bD\b/g, 'DD').replace(/\bM\b/g, 'MM');
       let t = timeStr || '';
@@ -126,7 +127,6 @@
       const combined = [fmt.trim(), t.trim()].filter(Boolean).join(' ');
       return dayjs().format(combined);
     } else {
-      // Simple replacement for tokens D M Y H m s
       const now = new Date();
       const tokens = {
         'D': String(now.getDate()).padStart(2, '0'),
@@ -153,7 +153,6 @@
 
   // ---------- Core transform ----------
   function transformName(originalBase, ext, index, opts) {
-    // Build components
     const components = {
       prefix: opts.prefix || '',
       index: '',
@@ -166,12 +165,10 @@
       array: ''
     };
 
-    // If basedName not provided, apply trim/replace/regex to original base
     if (!opts.basedName) {
       let b = components.based;
       b = applyTrim(b, opts.trim);
       if (opts.replaceFind) {
-        // simple replace all occurrences (literal)
         b = b.split(opts.replaceFind).join(opts.replaceWith || '');
       }
       (opts.regexList || []).forEach(rx => {
@@ -181,20 +178,17 @@
       components.based = b;
     }
 
-    // Array-based naming (use modulo)
     if (Array.isArray(opts.arrayInput) && opts.arrayInput.length) {
       const arr = opts.arrayInput;
       const arrVal = arr[index % arr.length] || '';
       components.array = arrVal;
     }
 
-    // Indexing
     if (typeof opts.indexStart === 'number') {
       const idxVal = opts.indexStart + (index * (opts.indexInterval || 1));
       components.index = padNumber(idxVal, opts.indexPadding || 0);
     }
 
-    // Capitalization
     function applyCap(s) {
       if (!s) return s;
       if (opts.capitalization === 'upper') return s.toUpperCase();
@@ -206,14 +200,12 @@
       components[k] = applyCap(components[k]);
     });
 
-    // Build final parts according to positions
     const parts = [];
     opts.positions.forEach(pos => {
       if (pos === 'index' && components.index) {
-        // index will be inserted with separators later
         parts.push({ type: 'index', value: components.index });
       } else if (pos === 'ext') {
-        // skip here
+        // skip
       } else {
         const val = components[pos];
         if (val !== undefined && val !== null && String(val) !== '') {
@@ -222,19 +214,16 @@
       }
     });
 
-    // Join parts into a single string, inserting indexSeparator around index if present
     const sep = opts.indexSeparator || '_';
     const joined = parts.map(p => {
       if (p.type === 'index') return `${sep}${p.value}${sep}`;
       return p.value;
     }).join('');
 
-    // Clean up repeated separators and whitespace
     let final = joined.replace(new RegExp(`${sep}{2,}`, 'g'), sep).replace(/\s{2,}/g, ' ').trim();
 
     if (!final) final = components.based || originalBase;
 
-    // Determine extension: if user provided extensionsFile override, use it; otherwise original ext
     const finalExt = (opts.extensionsFile && opts.extensionsFile.trim()) ? opts.extensionsFile.trim() : components.ext;
     return finalExt ? `${final}.${finalExt}` : final;
   }
@@ -275,7 +264,6 @@
     });
   }
 
-  // Simple HTML escape for safety in rendering
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, '&amp;')
@@ -318,7 +306,6 @@
   }
 
   // ---------- Event bindings ----------
-  // File input
   fileInput.addEventListener('change', (e) => {
     const files = Array.from(e.target.files || []);
     files.forEach(f => {
@@ -329,7 +316,6 @@
     debouncedPreview();
   });
 
-  // Drag & drop support
   const uploadArea = document.querySelector('.upload') || fileInput.parentElement;
   if (uploadArea) {
     uploadArea.addEventListener('dragover', (e) => {
@@ -476,12 +462,6 @@
       alert('Terjadi kesalahan saat membuat ZIP.');
     }
   });
-
-  // ---------- Debounced preview ----------
-  const debouncedPreview = debounce(() => {
-    gatherOptions();
-    renderPreview();
-  }, 220);
 
   // Initial render
   renderFileList();
