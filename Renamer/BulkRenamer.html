@@ -261,13 +261,13 @@
           const li = document.createElement('li');
           li.className = 'file-item';
           li.dataset.index = idx;
-          li.innerHTML = \`
+          li.innerHTML = `
             <input type="checkbox" checked data-idx="\${idx}" />
             <div style="flex:1;min-width:0;">
               <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">\${f.name}.\${f.ext}</div>
               <div style="font-size:0.8rem;color:\${getComputedStyle(document.documentElement).getPropertyValue('--muted')};">Size: \${Math.round(f.file.size/1024)} KB</div>
             </div>
-          \`;
+          `;
           fileList.appendChild(li);
         });
       }
@@ -278,12 +278,12 @@
         state.files.forEach((f, idx) => {
           const li = document.createElement('li');
           li.className = 'file-item';
-          li.innerHTML = \`
+          li.innerHTML = `
             <div style="flex:1;">
               <div style="font-size:0.95rem;">\${f.name}.\${f.ext}</div>
               <div style="font-size:0.85rem;color:var(--muted);">Preview: <strong>\${f.name}.\${f.ext}</strong></div>
             </div>
-          \`;
+          `;
           previewList.appendChild(li);
         });
       }
