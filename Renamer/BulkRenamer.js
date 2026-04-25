@@ -1,7 +1,7 @@
 /* scripts.js
-   Multiple Renamer — core logic
-   - Pastikan index.html memuat file ini dengan <script src="scripts.js" defer></script>
-   - Optional: include JSZip, FileSaver, SortableJS via CDN untuk fitur lengkap
+Multiple Renamer — core logic
+- Pastikan index.html memuat file ini dengan <script src="scripts.js" defer></script>
+- Optional: include JSZip, FileSaver, SortableJS via CDN untuk fitur lengkap
 */
 
 (() => {
@@ -32,12 +32,12 @@
   // ---------- DOM hooks ----------
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
-
+  
   const fileInput = $('#fileInput');
   const fileListEl = $('#fileList');
   const previewListEl = $('#previewList');
   const downloadZipBtn = $('#downloadZipBtn');
-
+  
   // Options form elements
   const basedNameEl = $('#basedName');
   const indexSeparatorEl = $('#indexSeparator');
@@ -58,12 +58,12 @@
   const addRegexBtn = $('#addRegexBtn');
   const regexListEl = $('#regexList');
   const positionsEl = $('#positions');
-
+  
   const selectAllBtn = $('#selectAllBtn');
   const clearBtn = $('#clearBtn');
   const applyBtn = $('#applyBtn');
   const resetBtn = $('#resetBtn');
-
+  
   // Debounce helper
   function debounce(fn, wait=200){
     let t;
@@ -72,14 +72,20 @@
       t = setTimeout(()=>fn(...args), wait);
     };
   }
-
+  
+  // ---------- Debounced preview ----------
+  const debouncedPreview = debounce(() => {
+    gatherOptions();
+    renderPreview();
+  }, 220);
+  
   // ---------- Utilities ----------
   function splitExt(filename){
     const dot = filename.lastIndexOf('.');
     if(dot === -1) return {base: filename, ext: ''};
     return {base: filename.slice(0,dot), ext: filename.slice(dot+1)};
   }
-
+  
   function padNumber(num, width){
     const s = String(num);
     if(width <= 0) return s;
@@ -435,11 +441,6 @@
     saveAs(content, 'renamed_files.zip');
   });
 
-  // ---------- Debounced preview ----------
-  const debouncedPreview = debounce(() => {
-    gatherOptions();
-    renderPreview();
-  }, 220);
 
   // Initial render
   renderFileList();
