@@ -3,20 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Multiple Renamer</title>
+  <title>Multiple Renamer — BulkRenamer</title>
 
   <!-- Stylesheet utama -->
   <link rel="stylesheet" href="BulkRenamer.css" />
 
-  <!-- Optional libraries (CDN placeholders) -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js" defer></script> -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" defer></script> -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js" defer></script> -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.7/dayjs.min.js" defer></script> -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js" defer></script> -->
-
   <style>
-    /* Minimal inline reset so preview tampil rapi tanpa styles.css */
+    /* Minimal inline reset so preview tampil rapi jika CSS belum dimuat */
     :root {
       --bg:#f6f7fb; --card:#ffffff; --muted:#6b7280; --accent:#2563eb;
       --gap:16px;
@@ -58,8 +51,8 @@
       <h2 id="originalTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Original</h2>
 
       <!-- Upload / drag-drop -->
-      <div class="card" style="margin-bottom:8px;">
-        <label for="fileInput">Unggah file (drag & drop didukung)</label>
+      <div class="card upload" style="margin-bottom:8px;">
+        <label for="fileInput" style="font-weight:600;">Unggah file (drag & drop didukung)</label>
         <input id="fileInput" type="file" multiple aria-describedby="fileHelp" />
         <div id="fileHelp" style="font-size:0.8rem;color:var(--muted);margin-top:6px;">
           Seret file ke area ini atau klik untuk memilih.
@@ -67,14 +60,11 @@
       </div>
 
       <!-- File list -->
-      <ul id="fileList" class="file-list" aria-live="polite">
-        <!-- Contoh item (JS akan render nyata) -->
-        <!-- <li class="file-item" data-index="0"><input type="checkbox" checked /> <span class="filename">example.png</span></li> -->
-      </ul>
+      <ul id="fileList" class="file-list" aria-live="polite"></ul>
 
       <div class="actions" style="margin-top:8px;">
-        <button id="selectAllBtn" class="ghost">Pilih Semua</button>
-        <button id="clearBtn" class="ghost">Hapus Semua</button>
+        <button id="selectAllBtn" class="ghost" type="button">Pilih Semua</button>
+        <button id="clearBtn" class="ghost" type="button">Hapus Semua</button>
       </div>
     </aside>
 
@@ -87,6 +77,154 @@
         <input id="showOnlyChanged" type="checkbox" />
       </div>
 
+      <ul id="previewList" class="preview-list" aria-live="polite"></ul>
+
+      <div class="actions">
+        <button id="applyBtn" class="primary" type="button">Terapkan Rename</button>
+        <button id="resetBtn" class="ghost" type="button">Reset</button>
+      </div>
+    </section>
+
+    <!-- Panel kanan: Options -->
+    <aside class="card panel" aria-labelledby="optionsTitle">
+      <h2 id="optionsTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Options</h2>
+
+      <form id="optionsForm" class="controls" autocomplete="off" novalidate>
+        <!-- Change Based Name -->
+        <div>
+          <label for="basedName">Change Based Name</label>
+          <input id="basedName" name="basedName" type="text" placeholder="Masukkan nama dasar (opsional)" />
+        </div>
+
+        <!-- Indexing -->
+        <fieldset style="border:1px dashed #e6e9ef;padding:8px;border-radius:6px;">
+          <legend style="font-size:0.9rem;color:var(--muted);">Indexing</legend>
+          <div class="row">
+            <label style="width:80px;">Separator</label>
+            <input id="indexSeparator" name="indexSeparator" type="text" placeholder="_" />
+          </div>
+          <div class="row">
+            <label style="width:80px;">Start from</label>
+            <input id="indexStart" name="indexStart" type="number" value="1" min="0" />
+          </div>
+          <div class="row">
+            <label style="width:80px;">Interval</label>
+            <input id="indexInterval" name="indexInterval" type="number" value="1" min="1" />
+          </div>
+          <div class="row">
+            <label style="width:80px;">Zero padding</label>
+            <input id="indexPadding" name="indexPadding" type="number" value="0" min="0" />
+          </div>
+        </fieldset>
+
+        <!-- Capitalization -->
+        <div>
+          <label>Capitalization</label>
+          <div class="row" role="radiogroup" aria-label="Capitalization options">
+            <label><input type="radio" name="cap" value="upper" /> UPPERCASE</label>
+            <label><input type="radio" name="cap" value="lower" /> lowercase</label>
+            <label><input type="radio" name="cap" value="sentence" /> Sentence Case</label>
+            <label><input type="radio" name="cap" value="title" checked /> ProverCase</label>
+          </div>
+        </div>
+
+        <!-- Prefix / Suffix -->
+        <div>
+          <label for="prefix">Prefix</label>
+          <input id="prefix" name="prefix" type="text" placeholder="Prefix (opsional)" />
+        </div>
+        <div>
+          <label for="suffix">Suffix</label>
+          <input id="suffix" name="suffix" type="text" placeholder="Suffix (opsional)" />
+        </div>
+
+        <!-- Date -->
+        <fieldset style="border:1px dashed #e6e9ef;padding:8px;border-radius:6px;">
+          <legend style="font-size:0.9rem;color:var(--muted);">Date</legend>
+          <div class="row">
+            <label style="width:80px;">Format</label>
+            <input id="dateFormat" name="dateFormat" type="text" placeholder="eg D-M-Y" />
+          </div>
+          <div class="row">
+            <label style="width:80px;">Time</label>
+            <input id="timeFormat" name="timeFormat" type="text" placeholder="eg H-m-s" />
+          </div>
+        </fieldset>
+
+        <!-- Additions / Array -->
+        <div>
+          <label for="addText1">Add Text 1</label>
+          <input id="addText1" name="addText1" type="text" placeholder="Tambahan teks" />
+        </div>
+
+        <div>
+          <label for="arrayInput">Add by Array (eg: Abc, Def, Ghi)</label>
+          <textarea id="arrayInput" name="arrayInput" rows="3" placeholder="Pisahkan dengan koma"></textarea>
+        </div>
+
+        <!-- Trim / Replace / Regex -->
+        <fieldset style="border:1px dashed #e6e9ef;padding:8px;border-radius:6px;">
+          <legend style="font-size:0.9rem;color:var(--muted);">Transformations</legend>
+
+          <div>
+            <label>Trim Whitespace</label>
+            <div class="row">
+              <label><input type="radio" name="trim" value="none" checked /> None</label>
+              <label><input type="radio" name="trim" value="start" /> First</label>
+              <label><input type="radio" name="trim" value="end" /> End</label>
+              <label><input type="radio" name="trim" value="all" /> All</label>
+            </div>
+          </div>
+
+          <div>
+            <label for="replaceFind">Replace Character</label>
+            <div class="row">
+              <input id="replaceFind" name="replaceFind" type="text" placeholder="Find" />
+              <input id="replaceWith" name="replaceWith" type="text" placeholder="Replace" />
+            </div>
+          </div>
+
+          <div>
+            <label for="regexInput">Remove by Regex</label>
+            <div class="row">
+              <input id="regexInput" name="regexInput" type="text" placeholder="Masukkan regex (tanpa / /)" />
+              <button type="button" id="addRegexBtn" class="ghost">[ + ]</button>
+            </div>
+            <div id="regexList" style="font-size:0.85rem;color:var(--muted);margin-top:6px;"></div>
+          </div>
+        </fieldset>
+
+        <!-- Positions (drag/drop) -->
+        <div>
+          <label>Positions (drag untuk urutkan)</label>
+          <div id="positions" class="positions" aria-label="Positions order">
+            <span class="tag" data-pos="prefix">Prefix</span>
+            <span class="tag" data-pos="index">Indexing</span>
+            <span class="tag" data-pos="based">Based Name</span>
+            <span class="tag" data-pos="add1">Add Text 1</span>
+            <span class="tag" data-pos="date">Date</span>
+            <span class="tag" data-pos="add2">Add Text 2</span>
+            <span class="tag" data-pos="suffix">Suffix</span>
+            <span class="tag" data-pos="ext">Extensions</span>
+            <span class="tag" data-pos="array">Array</span>
+          </div>
+        </div>
+
+      </form>
+    </aside>
+  </main>
+
+  <!-- Libraries: JSZip, FileSaver, SortableJS, dayjs, lodash -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.9/dayjs.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js" defer></script>
+
+  <!-- App script -->
+  <script src="BulkRenamer.js" defer></script>
+</body>
+</html>
       <ul id="previewList" class="preview-list" aria-live="polite">
         <!-- JS akan render preview mapping original -> new -->
       </ul>
