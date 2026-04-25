@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Multiple Renamer</title>
+
+  <!-- Stylesheet utama -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Optional libraries (CDN placeholders) -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js" defer></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" defer></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js" defer></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.7/dayjs.min.js" defer></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js" defer></script> -->
+
+  <style>
+    /* Minimal inline reset so preview tampil rapi tanpa styles.css */
+    :root {
+      --bg:#f6f7fb; --card:#ffffff; --muted:#6b7280; --accent:#2563eb;
+      --gap:16px;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+    body{background:var(--bg);color:#111;padding:24px;box-sizing:border-box;}
+    .app{display:grid;grid-template-columns:320px 1fr 360px;gap:var(--gap);align-items:start;}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+    header h1{font-size:1.125rem;margin:0;}
+    .card{background:var(--card);border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+    .panel{min-height:120px;}
+    .file-list{list-style:none;padding:0;margin:0;max-height:56vh;overflow:auto;}
+    .file-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;}
+    .file-item:hover{background:#f3f4f6;}
+    .preview-list{list-style:none;padding:0;margin:0;max-height:56vh;overflow:auto;}
+    .controls{display:flex;flex-direction:column;gap:8px;}
+    .row{display:flex;gap:8px;align-items:center;}
+    label{font-size:0.85rem;color:var(--muted);}
+    input[type="text"], textarea, select {width:100%;padding:8px;border:1px solid #e6e9ef;border-radius:6px;}
+    .positions{display:flex;flex-wrap:wrap;gap:8px;padding:8px;}
+    .tag{background:#eef2ff;color:#1e3a8a;padding:6px 10px;border-radius:999px;font-size:0.85rem;cursor:grab;}
+    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;}
+    button{background:var(--accent);color:#fff;border:0;padding:8px 12px;border-radius:6px;cursor:pointer;}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid #dbeafe;}
+    @media (max-width:1000px){ .app{grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Multiple Renamer</h1>
+    <div class="header-actions">
+      <button id="downloadZipBtn" title="Download hasil sebagai ZIP">Download Zip</button>
+    </div>
+  </header>
+
+  <main class="app" id="app">
+    <!-- Panel kiri: Original files -->
+    <aside class="card panel" aria-labelledby="originalTitle">
+      <h2 id="originalTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Original</h2>
+
+      <!-- Upload / drag-drop -->
+      <div class="card" style="margin-bottom:8px;">
+        <label for="fileInput">Unggah file (drag & drop didukung)</label>
+        <input id="fileInput" type="file" multiple aria-describedby="fileHelp" />
+        <div id="fileHelp" style="font-size:0.8rem;color:var(--muted);margin-top:6px;">
+          Seret file ke area ini atau klik untuk memilih.
+        </div>
+      </div>
+
+      <!-- File list -->
+      <ul id="fileList" class="file-list" aria-live="polite">
+        <!-- Contoh item (JS akan render nyata) -->
+        <!-- <li class="file-item" data-index="0"><input type="checkbox" checked /> <span class="filename">example.png</span></li> -->
+      </ul>
+
+      <div class="actions" style="margin-top:8px;">
+        <button id="selectAllBtn" class="ghost">Pilih Semua</button>
+        <button id="clearBtn" class="ghost">Hapus Semua</button>
+      </div>
+    </aside>
+
+    <!-- Panel tengah: Preview -->
+    <section class="card panel" aria-labelledby="previewTitle">
+      <h2 id="previewTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Preview</h2>
+
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+        <label style="margin:0;font-size:0.85rem;color:var(--muted);">Tampilkan perubahan</label>
+        <input id="showOnlyChanged" type="checkbox" />
+      </div>
+
+      <ul id="previewList" class="preview-list" aria-live="polite">
+        <!-- JS akan render preview mapping original -> new -->
+      </ul>
+
+      <div class="actions">
+        <button id="applyBtn">Terapkan Rename</button>
+        <button id="resetBtn" class="ghost">Reset</button>
+      </div>
+    </section>
+
+    <!-- Panel kanan: Options -->
+    <aside class="card panel" aria-labelledby="optionsTitle">
+      <h2 id="optionsTitle" style="font-size:0.95rem;margin:0 0 8px 0;">Options</h2>
+
+      <form id="optionsForm" class="controls" autocomplete="off" novalidate>
+        <!-- Change Based Name -->
+        <div>
+          <label for="basedName">Change Based Name</label>
+          <input id="basedName" name="basedName" type="text" placeholder="Masukkan nama dasar (opsional)" />
+        </div>
+
+        <!-- Indexing -->
+        <fieldset style="border:1px dashed #e6e9ef;padding:8px;border-radius:6px;">
+          <legend style="font-size:0.9rem;color:var(--muted);">Indexing</legend>
+          <div class="row">
+            <label style="width:80px;">Separator</label>
+            <input id="indexSeparator" name="indexSeparator" type="text" placeholder="_" />
+          </div>
+          <div class="row">
+            <label style="width:80px;">Start from</label>
+            <input id="indexStart" name="indexStart" type="number" value="1" min="0" />
+          </div>
+          <div class="row">
+            <label style="width:80px;">Interval</label>
+            <input id="indexInterval" name="indexInterval" type="number" value="1" min="1" />
+          </div>
+          <div class="row">
+            <label style="width:80px;">Zero padding</label>
+            <input id="indexPadding" name="indexPadding" type="number" value="0" min="0" />
+          </div>
+        </fieldset>
+
+        <!-- Capitalization -->
+        <div>
+          <label>Capitalization</label>
+          <div class="row" role="radiogroup" aria-label="Capitalization options">
+            <label><input type="radio" name="cap" value="upper" /> UPPERCASE</label>
+            <label><input type="radio" name="cap" value="lower" /> lowercase</label>
+            <label><input type="radio" name="cap" value="sentence" /> Sentence Case</label>
+            <label><input type="radio" name="cap" value="title" checked /> ProverCase</label>
+          </div>
+        </div>
+
+        <!-- Prefix / Suffix -->
+        <div>
+          <label for="prefix">Prefix</label>
+          <input id="prefix" name="prefix" type="text" placeholder="Prefix (opsional)" />
+        </div>
+        <div>
+          <label for="suffix">Suffix</label>
+          <input id="suffix" name="suffix" type="text" placeholder="Suffix (opsional)" />
+        </div>
+
+        <!-- Date -->
+        <fieldset style="border:1px dashed #e6e9ef;padding:8px;border-radius:6px;">
+          <legend style="font-size:0.9rem;color:var(--muted);">Date</legend>
+          <div class="row">
+            <label style="width:80px;">Format</label>
+            <input id="dateFormat" name="dateFormat" type="text" placeholder="eg D-M-Y" />
+          </div>
+          <div class="row">
+            <label style="width:80px;">Time</label>
+            <input id="timeFormat" name="timeFormat" type="text" placeholder="eg H-m-s" />
+          </div>
+        </fieldset>
+
+        <!-- Additions / Array -->
+        <div>
+          <label for="addText1">Add Text 1</label>
+          <input id="addText1" name="addText1" type="text" placeholder="Tambahan teks" />
+        </div>
+
+        <div>
+          <label for="arrayInput">Add by Array (eg: Abc, Def, Ghi)</label>
+          <textarea id="arrayInput" name="arrayInput" rows="3" placeholder="Pisahkan dengan koma"></textarea>
+        </div>
+
+        <!-- Trim / Replace / Regex -->
+        <fieldset style="border:1px dashed #e6e9ef;padding:8px;border-radius:6px;">
+          <legend style="font-size:0.9rem;color:var(--muted);">Transformations</legend>
+
+          <div>
+            <label>Trim Whitespace</label>
+            <div class="row">
+              <label><input type="radio" name="trim" value="none" checked /> None</label>
+              <label><input type="radio" name="trim" value="start" /> First</label>
+              <label><input type="radio" name="trim" value="end" /> End</label>
+              <label><input type="radio" name="trim" value="all" /> All</label>
+            </div>
+          </div>
+
+          <div>
+            <label for="replaceFind">Replace Character</label>
+            <div class="row">
+              <input id="replaceFind" name="replaceFind" type="text" placeholder="Find" />
+              <input id="replaceWith" name="replaceWith" type="text" placeholder="Replace" />
+            </div>
+          </div>
+
+          <div>
+            <label for="regexInput">Remove by Regex</label>
+            <div class="row">
+              <input id="regexInput" name="regexInput" type="text" placeholder="Masukkan regex (tanpa / /)" />
+              <button type="button" id="addRegexBtn" class="ghost">[ + ]</button>
+            </div>
+            <div id="regexList" style="font-size:0.85rem;color:var(--muted);margin-top:6px;"></div>
+          </div>
+        </fieldset>
+
+        <!-- Positions (drag/drop) -->
+        <div>
+          <label>Positions (drag untuk urutkan)</label>
+          <div id="positions" class="positions" aria-label="Positions order">
+            <span class="tag" data-pos="prefix">Prefix</span>
+            <span class="tag" data-pos="index">Indexing</span>
+            <span class="tag" data-pos="based">Based Name</span>
+            <span class="tag" data-pos="add1">Add Text 1</span>
+            <span class="tag" data-pos="date">Date</span>
+            <span class="tag" data-pos="add2">Add Text 2</span>
+            <span class="tag" data-pos="suffix">Suffix</span>
+            <span class="tag" data-pos="ext">Extensions</span>
+            <span class="tag" data-pos="array">Array</span>
+          </div>
+        </div>
+
+      </form>
+    </aside>
+  </main>
+
+  <script>
+    /**
+     * Minimal JS skeleton: state, basic DOM hooks, and renderPreview stub.
+     * Lengkapi fungsi transformasi di file scripts.js untuk fitur penuh.
+     */
+    (function(){
+      const state = {
+        files: [], // {file:File, name:string, ext:string, selected:true}
+        options: {}
+      };
+
+      const fileInput = document.getElementById('fileInput');
+      const fileList = document.getElementById('fileList');
+      const previewList = document.getElementById('previewList');
+      const downloadZipBtn = document.getElementById('downloadZipBtn');
+
+      fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        files.forEach((f, i) => {
+          const name = f.name;
+          const dot = name.lastIndexOf('.');
+          const ext = dot >= 0 ? name.slice(dot+1) : '';
+          const base = dot >= 0 ? name.slice(0,dot) : name;
+          state.files.push({file:f, name:base, ext, selected:true});
+        });
+        renderFileList();
+        renderPreview();
+      });
+
+      function renderFileList(){
+        fileList.innerHTML = '';
+        state.files.forEach((f, idx) => {
+          const li = document.createElement('li');
+          li.className = 'file-item';
+          li.dataset.index = idx;
+          li.innerHTML = \`
+            <input type="checkbox" checked data-idx="\${idx}" />
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">\${f.name}.\${f.ext}</div>
+              <div style="font-size:0.8rem;color:\${getComputedStyle(document.documentElement).getPropertyValue('--muted')};">Size: \${Math.round(f.file.size/1024)} KB</div>
+            </div>
+          \`;
+          fileList.appendChild(li);
+        });
+      }
+
+      function renderPreview(){
+        // Sederhana: tampilkan mapping original -> same name (placeholder)
+        previewList.innerHTML = '';
+        state.files.forEach((f, idx) => {
+          const li = document.createElement('li');
+          li.className = 'file-item';
+          li.innerHTML = \`
+            <div style="flex:1;">
+              <div style="font-size:0.95rem;">\${f.name}.\${f.ext}</div>
+              <div style="font-size:0.85rem;color:var(--muted);">Preview: <strong>\${f.name}.\${f.ext}</strong></div>
+            </div>
+          \`;
+          previewList.appendChild(li);
+        });
+      }
+
+      // Buttons (stubs)
+      document.getElementById('selectAllBtn').addEventListener('click', () => {
+        state.files.forEach(f => f.selected = true);
+        renderFileList();
+      });
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        state.files = [];
+        renderFileList();
+        renderPreview();
+      });
+      document.getElementById('applyBtn').addEventListener('click', () => {
+        // TODO: panggil engine rename dan update preview
+        alert('Apply rename (stub) — lengkapi engine di scripts.js');
+      });
+      downloadZipBtn.addEventListener('click', () => {
+        alert('Download Zip (stub) — tambahkan JSZip + FileSaver untuk fungsi ini.');
+      });
+
+      // Expose for debugging
+      window.renamerState = state;
+    })();
+  </script>
+</body>
+</html>
+
