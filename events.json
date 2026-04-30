@@ -1,0 +1,40 @@
+{
+  "2504": [
+    {
+      "date": "2026-01-15",
+      "general_events": [
+        {"title": "New Year Celebration", "country": "USA", "image_url": ""},
+        {"title": "Winter Festival", "country": "Canada", "image_url": ""}
+      ],
+      "evt_2026": [
+        {"title": "Tech Conference", "country": "Germany", "image_url": ""},
+        {"title": "Music Awards", "country": "UK", "image_url": ""}
+      ]
+    },
+    {
+      "date": "2026-02-20",
+      "general_events": [
+        {"title": "Spring Festival", "country": "China", "image_url": ""}
+      ],
+      "evt_2026": []
+    }
+  ],
+  "2026": [
+    {
+      "date": "2026-03-10",
+      "general_events": [
+        {"title": "Art Exhibition", "country": "France", "image_url": ""}
+      ],
+      "evt_2027": []
+    }
+  ],
+  "2027": [
+    {
+      "date": "2027-01-01",
+      "general_events": [
+        {"title": "Global Summit", "country": "Switzerland", "image_url": ""}
+      ],
+      "evt_2027": []
+    }
+  ]
+}
