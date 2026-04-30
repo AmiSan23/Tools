@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Calendar View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .sync-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .sync-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .calendar-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        /* Today Events Section */
+        .today-events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .event-card {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+            height: 250px;
+        }
+
+        .event-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .event-card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .event-card-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 20px;
+            color: white;
+        }
+
+        .event-card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .event-card-country {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .event-card-flag {
+            width: 30px;
+            height: 20px;
+            object-fit: cover;
+            border-radius: 3px;
+        }
+
+        .event-card-country-name {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Month View */
+        .month-view {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .month-day {
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            background: #f5f5f5;
+            min-height: 80px;
+        }
+
+        .month-day.today {
+            background: #667eea;
+            color: white;
+        }
+
+        .month-day.has-event {
+            border: 2px solid #4CAF50;
+        }
+
+        .month-day-number {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .month-day-events {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .month-day.today .month-day-events {
+            color: #e0e0e0;
+        }
+
+        /* Weeks Timeline */
+        .weeks-timeline {
+            position: relative;
+            padding-left: 80px;
+        }
+
+        .timeline-day {
+            position: relative;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+
+        .timeline-day.today {
+            background: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .timeline-day.today::before {
+            content: 'TODAY';
+            position: absolute;
+            left: -70px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .timeline-date {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .timeline-events {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .timeline-event-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timeline-event-info {
+            flex: 1;
+        }
+
+        .timeline-event-title {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .timeline-event-country {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .timeline-flag {
+            width: 24px;
+            height: 16px;
+            object-fit: cover;
+            border-radius: 2px;
+        }
+
+        .add-image-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .add-image-btn:hover {
+            background: #5a6fd6;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-save {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .modal-cancel {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .month-view {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .today-events-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .weeks-timeline {
+                padding-left: 0;
+            }
+
+            .timeline-day.today::before {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📅 Custom Calendar View</h1>
+            <button class="sync-btn" onclick="syncWithGoogleCalendar()">🔄 Sync with Google Calendar</button>
+        </header>
+
+        <!-- Today Events Section -->
+        <section class="calendar-section">
+            <h2 class="section-title">🎯 Today's Events</h2>
+            <div class="today-events-grid" id="todayEventsGrid">
+                <!-- Event cards will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Month View Section -->
+        <section class="calendar-section">
+            <h2 class="section-title">📆 Month View</h2>
+            <div class="month-view" id="monthView">
+                <!-- Days will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Weeks Timeline Section -->
+        <section class="calendar-section">
+            <h2 class="section-title">📋 Weeks Timeline</h2>
+            <div class="weeks-timeline" id="weeksTimeline">
+                <!-- Timeline days will be inserted here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for adding image URL -->
+    <div class="modal" id="imageModal">
+        <div class="modal-content">
+            <h3 class="modal-title">Add Event Image URL</h3>
+            <input type="text" class="modal-input" id="imageUrlInput" placeholder="Enter image URL...">
+            <div class="modal-buttons">
+                <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+                <button class="modal-save" onclick="saveImageUrl()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let eventsData = [];
+        let currentModalEvent = null;
+        const today = new Date();
+
+        // Load events from JSON file and localStorage
+        async function loadEvents() {
+            try {
+                // First try to load from events.json
+                const response = await fetch('events.json');
+                const data = await response.json();
+                
+                // Flatten the data structure
+                eventsData = [];
+                Object.keys(data).forEach(yearKey => {
+                    data[yearKey].forEach(entry => {
+                        if (entry.general_events) {
+                            entry.general_events.forEach(evt => {
+                                eventsData.push({
+                                    date: entry.date,
+                                    title: evt.title,
+                                    country: evt.country,
+                                    image_url: evt.image_url || ''
+                                });
+                            });
+                        }
+                        // Check other event types like evt_2026, evt_2027, etc.
+                        Object.keys(entry).forEach(key => {
+                            if (key.startsWith('evt_') && Array.isArray(entry[key])) {
+                                entry[key].forEach(evt => {
+                                    eventsData.push({
+                                        date: entry.date,
+                                        title: evt.title,
+                                        country: evt.country,
+                                        image_url: evt.image_url || ''
+                                    });
+                                });
+                            }
+                        });
+                    });
+                });
+
+                // Merge with localStorage data
+                const storedData = localStorage.getItem('calendarEvents');
+                if (storedData) {
+                    const localEvents = JSON.parse(storedData);
+                    localEvents.forEach(localEvt => {
+                        const exists = eventsData.some(e => 
+                            e.date === localEvt.date && 
+                            e.title === localEvt.title
+                        );
+                        if (!exists) {
+                            eventsData.push(localEvt);
+                        }
+                    });
+                }
+
+                renderAllViews();
+            } catch (error) {
+                console.error('Error loading events:', error);
+                // Load from localStorage as fallback
+                const storedData = localStorage.getItem('calendarEvents');
+                if (storedData) {
+                    eventsData = JSON.parse(storedData);
+                    renderAllViews();
+                }
+            }
+        }
+
+        // Save events to localStorage
+        function saveEventsToStorage() {
+            localStorage.setItem('calendarEvents', JSON.stringify(eventsData));
+        }
+
+        // Render all views
+        function renderAllViews() {
+            renderTodayEvents();
+            renderMonthView();
+            renderWeeksTimeline();
+        }
+
+        // Get flag path for a country
+        function getFlagPath(countryName) {
+            return `flag/${countryName}.svg`;
+        }
+
+        // Render Today Events
+        function renderTodayEvents() {
+            const grid = document.getElementById('todayEventsGrid');
+            const todayStr = today.toISOString().split('T')[0];
+            
+            const todayEvents = eventsData.filter(evt => evt.date === todayStr);
+            
+            if (todayEvents.length === 0) {
+                grid.innerHTML = '<p style="color: #666; grid-column: 1/-1; text-align: center;">No events scheduled for today.</p>';
+                return;
+            }
+
+            grid.innerHTML = todayEvents.map((evt, index) => `
+                <div class="event-card">
+                    <img src="${evt.image_url || 'https://via.placeholder.com/300x250?text=No+Image'}" 
+                         alt="${evt.title}" 
+                         class="event-card-image"
+                         onerror="this.src='https://via.placeholder.com/300x250?text=Image+Not+Found'">
+                    <div class="event-card-overlay">
+                        <div class="event-card-title">${evt.title}</div>
+                        <div class="event-card-country">
+                            <img src="${getFlagPath(evt.country)}" 
+                                 alt="${evt.country}" 
+                                 class="event-card-flag"
+                                 onerror="this.style.display='none'">
+                            <span class="event-card-country-name">${evt.country}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render Month View
+        function renderMonthView() {
+            const monthView = document.getElementById('monthView');
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startingDay = firstDay.getDay();
+            const totalDays = lastDay.getDate();
+            
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            let html = `<div style="grid-column: 1/-1; text-align: center; font-weight: bold; margin-bottom: 10px; font-size: 1.2rem;">
+                ${monthNames[month]} ${year}
+            </div>`;
+            
+            // Add empty cells for days before the first day
+            for (let i = 0; i < startingDay; i++) {
+                html += '<div class="month-day"></div>';
+            }
+            
+            // Add days
+            const todayStr = today.toISOString().split('T')[0];
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = dateStr === todayStr;
+                const dayEvents = eventsData.filter(evt => evt.date === dateStr);
+                const hasEvent = dayEvents.length > 0;
+                
+                html += `
+                    <div class="month-day ${isToday ? 'today' : ''} ${hasEvent ? 'has-event' : ''}">
+                        <div class="month-day-number">${day}</div>
+                        ${hasEvent ? `<div class="month-day-events">${dayEvents.length} event(s)</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            monthView.innerHTML = html;
+        }
+
+        // Render Weeks Timeline
+        function renderWeeksTimeline() {
+            const timeline = document.getElementById('weeksTimeline');
+            const todayStr = today.toISOString().split('T')[0];
+            
+            // Get all unique dates and sort them
+            const uniqueDates = [...new Set(eventsData.map(evt => evt.date))].sort();
+            
+            if (uniqueDates.length === 0) {
+                timeline.innerHTML = '<p style="color: #666;">No events scheduled.</p>';
+                return;
+            }
+            
+            timeline.innerHTML = uniqueDates.map(dateStr => {
+                const dayEvents = eventsData.filter(evt => evt.date === dateStr);
+                const isToday = dateStr === todayStr;
+                const dateObj = new Date(dateStr);
+                const dateDisplay = dateObj.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                
+                return `
+                    <div class="timeline-day ${isToday ? 'today' : ''}">
+                        <div class="timeline-date">${dateDisplay}</div>
+                        <div class="timeline-events">
+                            ${dayEvents.map((evt, index) => `
+                                <div class="timeline-event-box">
+                                    <div class="timeline-event-info">
+                                        <div class="timeline-event-title">${evt.title}</div>
+                                        <div class="timeline-event-country">
+                                            <img src="${getFlagPath(evt.country)}" 
+                                                 alt="${evt.country}" 
+                                                 class="timeline-flag"
+                                                 onerror="this.style.display='none'">
+                                            <span>${evt.country}</span>
+                                        </div>
+                                    </div>
+                                    <button class="add-image-btn" onclick="openImageModal('${dateStr}', '${evt.title.replace(/'/g, "\\'")}')">
+                                        ${evt.image_url ? '✏️ Edit Image' : '➕ Add Image'}
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Modal functions
+        function openImageModal(date, title) {
+            currentModalEvent = { date, title };
+            const event = eventsData.find(e => e.date === date && e.title === title);
+            document.getElementById('imageUrlInput').value = event ? event.image_url : '';
+            document.getElementById('imageModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.remove('active');
+            currentModalEvent = null;
+        }
+
+        function saveImageUrl() {
+            if (!currentModalEvent) return;
+            
+            const imageUrl = document.getElementById('imageUrlInput').value.trim();
+            
+            // Update the event in eventsData
+            const eventIndex = eventsData.findIndex(
+                e => e.date === currentModalEvent.date && e.title === currentModalEvent.title
+            );
+            
+            if (eventIndex !== -1) {
+                eventsData[eventIndex].image_url = imageUrl;
+                saveEventsToStorage();
+                renderAllViews();
+            }
+            
+            closeModal();
+        }
+
+        // Sync with Google Calendar (placeholder function)
+        function syncWithGoogleCalendar() {
+            alert('Google Calendar sync would require OAuth authentication and API integration. This is a placeholder for the sync functionality.');
+            // In a real implementation, you would:
+            // 1. Use Google OAuth 2.0 to authenticate
+            // 2. Use Google Calendar API to fetch events
+            // 3. Map the events to your data structure
+            // 4. Update eventsData and re-render
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Initialize
+        loadEvents();
+    </script>
+</body>
+</html>
